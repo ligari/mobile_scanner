@@ -13,6 +13,7 @@ import 'package:mobile_scanner_example/widgets/dialogs/barcode_format_dialog.dar
 import 'package:mobile_scanner_example/widgets/dialogs/box_fit_dialog.dart';
 import 'package:mobile_scanner_example/widgets/dialogs/detection_speed_dialog.dart';
 import 'package:mobile_scanner_example/widgets/dialogs/detection_timeout_dialog.dart';
+import 'package:mobile_scanner_example/widgets/dialogs/invert_image_modulo_dialog.dart';
 import 'package:mobile_scanner_example/widgets/dialogs/resolution_dialog.dart';
 import 'package:mobile_scanner_example/widgets/scanned_barcode_label.dart';
 import 'package:mobile_scanner_example/widgets/scanner_error_widget.dart';
@@ -24,6 +25,7 @@ enum _PopupMenuItems {
   detectionTimeout,
   returnImage,
   invertImage,
+  invertImageModulo,
   autoZoom,
   useBarcodeOverlay,
   boxFit,
@@ -49,6 +51,7 @@ class _MobileScannerAdvancedState extends State<MobileScannerAdvanced> {
 
   bool autoZoom = false;
   bool invertImage = false;
+  int invertImageModulo = 3;
   bool returnImage = false;
 
   Size desiredCameraResolution = const Size(1920, 1080);
@@ -74,6 +77,7 @@ class _MobileScannerAdvancedState extends State<MobileScannerAdvanced> {
     returnImage: returnImage,
     // torchEnabled: true,
     invertImage: invertImage,
+    invertImageModulo: invertImageModulo,
     autoZoom: autoZoom,
   );
 
@@ -161,6 +165,21 @@ class _MobileScannerAdvancedState extends State<MobileScannerAdvanced> {
     }
   }
 
+  Future<void> _showInvertImageModuloDialog() async {
+    final int? result = await showDialog<int>(
+      context: context,
+      builder:
+          (context) =>
+          InvertImageModuloDialog(initialModulo: invertImageModulo),
+    );
+
+    if (result != null) {
+      setState(() {
+        invertImageModulo = result;
+      });
+    }
+  }
+
   /// This implementation fully disposes and reinitializes the
   /// MobileScannerController every time a setting is changed via the menu.
   ///
@@ -221,6 +240,8 @@ class _MobileScannerAdvancedState extends State<MobileScannerAdvanced> {
                   await _showBarcodeFormatDialog();
                 case _PopupMenuItems.boxFit:
                   await _showBoxFitDialog();
+                case _PopupMenuItems.invertImageModulo:
+                  await _showInvertImageModuloDialog();
                 case _PopupMenuItems.returnImage:
                   returnImage = !returnImage;
                 case _PopupMenuItems.invertImage:
@@ -260,6 +281,12 @@ class _MobileScannerAdvancedState extends State<MobileScannerAdvanced> {
                     value: _PopupMenuItems.formats,
                     child: Text(_PopupMenuItems.formats.name),
                   ),
+                  if (!kIsWeb &&  Platform.isAndroid)
+                    PopupMenuItem(
+                      value: _PopupMenuItems.invertImageModulo,
+                      enabled: invertImage,
+                      child: Text(_PopupMenuItems.invertImageModulo.name),
+                    ),
                   const PopupMenuDivider(),
                   if (!kIsWeb && Platform.isAndroid)
                     CheckedPopupMenuItem(

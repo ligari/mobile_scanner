@@ -26,6 +26,38 @@ fun Image.toByteArray(): ByteArray {
     return out.toByteArray()
 }
 
+fun Image.toInvertedByteArray(): ByteArray {
+    val width = this.width
+    val height = this.height
+    val yPlane = planes[0]
+    val uPlane = planes[1]
+    val vPlane = planes[2]
+
+    val ySize = yPlane.buffer.remaining()
+    val uvSize = uPlane.buffer.remaining()
+
+    val nv21 = ByteArray(width * height + width * height / 2)
+
+    // Y invertieren
+    yPlane.buffer.get(nv21, 0, ySize)
+    for (i in 0 until ySize) {
+        nv21[i] = (255 - (nv21[i].toInt() and 0xFF)).toByte()
+    }
+
+    // Interleaved VU für NV21
+    val uBuffer = ByteArray(uvSize)
+    val vBuffer = ByteArray(uvSize)
+    uPlane.buffer.get(uBuffer)
+    vPlane.buffer.get(vBuffer)
+    var uvPos = width * height
+    for (i in 0 until uvSize step 2) {
+        nv21[uvPos++] = vBuffer[i]
+        nv21[uvPos++] = uBuffer[i]
+    }
+
+    return nv21
+}
+
 val Barcode.data: Map<String, Any?>
     get() = mapOf(
         "calendarEvent" to calendarEvent?.data,
