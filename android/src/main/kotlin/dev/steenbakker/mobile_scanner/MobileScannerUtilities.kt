@@ -49,10 +49,15 @@ fun Image.toInvertedByteArray(): ByteArray {
     val vBuffer = ByteArray(uvSize)
     uPlane.buffer.get(uBuffer)
     vPlane.buffer.get(vBuffer)
+
     var uvPos = width * height
-    for (i in 0 until uvSize step 2) {
-        nv21[uvPos++] = vBuffer[i]
-        nv21[uvPos++] = uBuffer[i]
+    if (uvPos + uvSize <= nv21.size) {
+        for (i in 0 until uvSize step 2) {
+            nv21[uvPos++] = vBuffer[i]
+            nv21[uvPos++] = uBuffer[i]
+        }
+    } else {
+        throw IllegalArgumentException("UV buffer size exceeds expected dimensions")
     }
 
     return nv21

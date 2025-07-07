@@ -120,8 +120,14 @@ class MobileScanner(
 
         // invert image every 3rd frame if invertImage is true
         val inputImage = if (invertImage && frameCounter % invertFrameModulo == 0) {
-            InputImage.fromByteArray(mediaImage.toInvertedByteArray(), mediaImage.width, mediaImage.height,
-                imageProxy.imageInfo.rotationDegrees, InputImage.IMAGE_FORMAT_NV21)
+            // Convert the MediaImage to an InputImage with inverted colors
+            try {
+                InputImage.fromByteArray(mediaImage.toInvertedByteArray(), mediaImage.width, mediaImage.height,
+                    imageProxy.imageInfo.rotationDegrees, InputImage.IMAGE_FORMAT_NV21)
+            } catch (e: IllegalArgumentException) {
+                // If the conversion fails, just use the original image
+                InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
+            }
         } else {
             InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
         }
