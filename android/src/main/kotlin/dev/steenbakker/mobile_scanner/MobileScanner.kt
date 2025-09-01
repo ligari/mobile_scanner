@@ -49,6 +49,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.io.ByteArrayOutputStream
 import java.io.IOException
+import java.nio.ByteBuffer
 import java.util.concurrent.Executors
 import kotlin.math.roundToInt
 
@@ -75,10 +76,12 @@ class MobileScanner(
     private var lastScanned: List<String?>? = null
     private var scannerTimeout = false
     private var displayListener: DisplayManager.DisplayListener? = null
+    private var frameCounter = 0
 
     /// Configurable variables
     var scanWindow: List<Float>? = null
     private var invertImage: Boolean = false
+    private var invertFrameModulo:Int = 3 // Reset every 3 frames to prevent overflow
     private var detectionSpeed: DetectionSpeed = DetectionSpeed.NO_DUPLICATES
     private var detectionTimeout: Long = 250
     private var returnImage = false
@@ -113,9 +116,18 @@ class MobileScanner(
     @ExperimentalGetImage
     val captureOutput = ImageAnalysis.Analyzer { imageProxy -> // YUV_420_888 format
         val mediaImage = imageProxy.image ?: return@Analyzer
+        frameCounter++ % 1000 // Reset every 100 frames to prevent overflow
 
-        val inputImage = if (invertImage) {
-            invertInputImage(imageProxy)
+        // invert image every 3rd frame if invertImage is true
+        val inputImage = if (invertImage && frameCounter % invertFrameModulo == 0) {
+            // Convert the MediaImage to an InputImage with inverted colors
+            try {
+                InputImage.fromByteArray(mediaImage.toInvertedByteArray(), mediaImage.width, mediaImage.height,
+                    imageProxy.imageInfo.rotationDegrees, InputImage.IMAGE_FORMAT_NV21)
+            } catch (e: IllegalArgumentException) {
+                // If the conversion fails, just use the original image
+                InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
+            }
         } else {
             InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
         }
@@ -343,11 +355,13 @@ class MobileScanner(
         detectionTimeout: Long,
         cameraResolutionWanted: Size?,
         invertImage: Boolean,
+        invertImageModulo: Int,
     ) {
         this.detectionSpeed = detectionSpeed
         this.detectionTimeout = detectionTimeout
         this.returnImage = returnImage
         this.invertImage = invertImage
+        this.invertFrameModulo = invertImageModulo
 
         if (camera?.cameraInfo != null && preview != null && surfaceProducer != null && !isPaused) {
 
@@ -603,49 +617,6 @@ class MobileScanner(
         }
     }
 
-    /**
-     * Inverts the image colours respecting the alpha channel
-     */
-    @ExperimentalGetImage
-    fun invertInputImage(imageProxy: ImageProxy): InputImage {
-        val image = imageProxy.image ?: throw IllegalArgumentException("Image is null")
-
-        // Convert YUV_420_888 image to RGB Bitmap
-        val bitmap = Bitmap.createBitmap(image.width, image.height, Bitmap.Config.ARGB_8888)
-        try {
-            val imageFormat = YuvToRgbConverter(activity.applicationContext)
-            imageFormat.yuvToRgb(image, bitmap)
-
-            // Create an inverted bitmap
-            val invertedBitmap = invertBitmapColors(bitmap)
-            imageFormat.release()
-
-            return InputImage.fromBitmap(invertedBitmap, imageProxy.imageInfo.rotationDegrees)
-        } finally {
-            // Release resources
-            bitmap.recycle() // Free up bitmap memory
-            imageProxy.close() // Close ImageProxy
-        }
-    }
-
-    // Efficiently invert bitmap colors using ColorMatrix
-    private fun invertBitmapColors(bitmap: Bitmap): Bitmap {
-        val colorMatrix = ColorMatrix().apply {
-            set(floatArrayOf(
-                -1f, 0f, 0f, 0f, 255f,  // Red
-                0f, -1f, 0f, 0f, 255f,  // Green
-                0f, 0f, -1f, 0f, 255f,  // Blue
-                0f, 0f, 0f, 1f, 0f      // Alpha
-            ))
-        }
-        val paint = Paint().apply { colorFilter = ColorMatrixColorFilter(colorMatrix) }
-
-        val invertedBitmap = Bitmap.createBitmap(bitmap.width, bitmap.height, bitmap.config!!)
-        val canvas = Canvas(invertedBitmap)
-        canvas.drawBitmap(bitmap, 0f, 0f, paint)
-
-        return invertedBitmap
-    }
 
     /**
      * Analyze a single image.

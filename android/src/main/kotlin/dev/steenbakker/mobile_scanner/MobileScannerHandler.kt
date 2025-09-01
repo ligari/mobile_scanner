@@ -173,6 +173,8 @@ class MobileScannerHandler(
         }
         val invertImage: Boolean = call.argument<Boolean>("invertImage") ?: false
 
+        val invertImageModulo: Int = call.argument<Int>("invertImageModulo") ?: 3
+
         val barcodeScannerOptions: BarcodeScannerOptions? = buildBarcodeScannerOptions(formats, autoZoom)
 
         val position =
@@ -243,6 +245,7 @@ class MobileScannerHandler(
             timeout.toLong(),
             cameraResolution,
             invertImage,
+            invertImageModulo,
         )
     }
 

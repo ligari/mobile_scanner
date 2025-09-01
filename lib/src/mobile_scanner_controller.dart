@@ -33,6 +33,7 @@ class MobileScannerController extends ValueNotifier<MobileScannerState> {
     this.returnImage = false,
     this.torchEnabled = false,
     this.invertImage = false,
+    this.invertImageModulo = 3,
     this.autoZoom = false,
   }) : detectionTimeoutMs =
            detectionSpeed == DetectionSpeed.normal ? detectionTimeoutMs : 0,
@@ -101,6 +102,9 @@ class MobileScannerController extends ValueNotifier<MobileScannerState> {
   ///
   /// Defaults to false and is only supported on Android.
   final bool invertImage;
+
+  /// The value after which the image colors should be inverted.
+  final int invertImageModulo;
 
   /// Whether the flashlight should be turned on when the camera is started.
   ///
@@ -407,6 +411,7 @@ class MobileScannerController extends ValueNotifier<MobileScannerState> {
       returnImage: returnImage,
       torchEnabled: torchEnabled,
       invertImage: invertImage,
+      invertImageModulo: invertImageModulo,
       autoZoom: autoZoom,
     );
 

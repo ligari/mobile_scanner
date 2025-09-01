@@ -16,6 +16,7 @@ class StartOptions {
     required this.returnImage,
     required this.torchEnabled,
     required this.invertImage,
+    required this.invertImageModulo,
     required this.autoZoom,
   });
 
@@ -28,6 +29,9 @@ class StartOptions {
   /// Invert image colors for analyzer to support white-on-black barcodes, which
   /// are not supported by MLKit.
   final bool invertImage;
+
+  /// The value after which the image colors should be inverted.
+  final int invertImageModulo;
 
   /// The detection speed for the scanner.
   final DetectionSpeed detectionSpeed;
@@ -67,6 +71,7 @@ class StartOptions {
       'timeout': detectionTimeoutMs,
       'torch': torchEnabled,
       'invertImage': invertImage,
+      'invertImageModulo': invertImageModulo,
       'autoZoom': autoZoom,
     };
   }
